@@ -6,6 +6,7 @@ import { ConditionDefinition } from '../conditional_variables/DataCondition';
 import DataSource from '../DataSource';
 import { DataVariableType } from '../DataVariable';
 import { ObjectAny } from '../../../common';
+import EditorModel from '../../../editor/model/Editor';
 
 export const CollectionVariableType = 'collection-component';
 // Represents the type for defining a loop’s data source.
@@ -104,8 +105,7 @@ export default class CollectionComponent extends Component {
     const { clonedBlock, overrideKeys } = resolveBlockValues(allCollectionItem, block);
     const type = opt.em.Components.getType(clonedBlock?.type || 'default');
     const model = type.model;
-    const symbol = new model(clonedBlock, opt);
-    symbolMain = opt.em.Components.addSymbol(symbol);
+    const component = new model(clonedBlock, opt);
 
     for (let index = resolvedStartIndex; index <= resolvedEndIndex; index++) {
       const item = items[index];
@@ -125,25 +125,7 @@ export default class CollectionComponent extends Component {
           innerMostCollectionItem,
         innerMostCollectionItem
       }
-      const { overrideKeys } = resolveBlockValues(allCollectionItem, block);
-      const instance = opt.em.Components.addSymbol(symbolMain!);
-      const children: any[] = []
-      Object.keys(overrideKeys).length && instance!.setSymbolOverride(Object.keys(overrideKeys));
-      instance!.set(overrideKeys);
-      for (let i = 0; i < instance!.components().length; i++) {
-        const childBlock = block['components'][i];
-        const { overrideKeys } = resolveBlockValues(allCollectionItem, deepCloneObject(childBlock));
-        const child = opt.em.Components.addSymbol(symbolMain!.components().at(i))
-        Object.keys(overrideKeys).length && child!.setSymbolOverride(Object.keys(overrideKeys));
-        child!.set(overrideKeys)
-        children.push(child);
-      }
-
-      const componentJSON = instance?.toJSON();
-      const cmpDefinition = {
-        ...componentJSON,
-        components: children
-      };
+      const cmpDefinition = getResolvedComponent(component, block, allCollectionItem, opt.em);
 
       components.push(cmpDefinition);
     }
@@ -161,6 +143,28 @@ export default class CollectionComponent extends Component {
   static isComponent(el: HTMLElement) {
     return toLowerCase(el.tagName) === CollectionVariableType;
   }
+}
+
+function getResolvedComponent(component: Component, block: any, allCollectionItem: any, em: EditorModel) {
+  const instance = em.Components.addSymbol(component);
+  const { overrideKeys } = resolveBlockValues(allCollectionItem, deepCloneObject(block));
+  Object.keys(overrideKeys).length && instance!.setSymbolOverride(Object.keys(overrideKeys));
+  instance!.set(overrideKeys);
+
+  const children: any[] = [];
+  for (let index = 0; index < instance!.components().length; index++) {
+    const childComponent = component!.components().at(index);
+    const childBlock = block['components'][index];
+    children.push(getResolvedComponent(childComponent, childBlock, allCollectionItem, em));
+  }
+
+  const componentJSON = instance?.toJSON();
+  const cmpDefinition = {
+    ...componentJSON,
+    components: children
+  };
+  
+  return cmpDefinition;
 }
 
 /**
@@ -192,15 +196,14 @@ function resolveBlockValues(context: any, block: any) {
   const clonedBlock = deepCloneObject(block);
   const overrideKeys: ObjectAny = {};
 
-  if (typeof clonedBlock === 'object' && clonedBlock !== null) {
+  if (typeof clonedBlock === 'object') {
     const blockKeys = Object.keys(clonedBlock);
-
     for (const key of blockKeys) {
       let blockValue = clonedBlock[key];
       if (key === 'collectionDefinition') continue;
       let shouldBeOverridden = false;
 
-      if (typeof blockValue === 'object' && blockValue !== null) {
+      if (typeof blockValue === 'object') {
         const collectionItem = blockValue.collection_name
           ? context[blockValue.collection_name]
           : innerMostCollectionItem;
@@ -211,14 +214,12 @@ function resolveBlockValues(context: any, block: any) {
             );
           }
 
-          if (blockValue.variable_type === 'current_item') {
-            if (collectionItem.current_item.type === DataVariableType) {
-              const path = collectionItem.current_item.path ? `${collectionItem.current_item.path}.${blockValue.path}` : blockValue.path;
-              clonedBlock[key] = {
-                ...collectionItem.current_item,
-                path
-              };
-            }
+          if (blockValue.variable_type === 'current_item' && collectionItem.current_item.type === DataVariableType) {
+            const path = collectionItem.current_item.path ? `${collectionItem.current_item.path}.${blockValue.path}` : blockValue.path;
+            clonedBlock[key] = {
+              ...collectionItem.current_item,
+              path
+            };
           } else {
             clonedBlock[key] = collectionItem[blockValue.variable_type];
           }
@@ -231,10 +232,11 @@ function resolveBlockValues(context: any, block: any) {
             if (Object.keys(itemOverrideKeys).length > 0) {
               shouldBeOverridden = true;
             }
+
             return typeof arrayItem === 'object' ? clonedBlock : arrayItem
           });
         } else {
-          const { clonedBlock, overrideKeys: itemOverrideKeys } = resolveBlockValues(context, blockValue).clonedBlock;
+          const { clonedBlock, overrideKeys: itemOverrideKeys } = resolveBlockValues(context, blockValue);
           clonedBlock[key] = clonedBlock;
 
           if (Object.keys(itemOverrideKeys).length > 0) {
