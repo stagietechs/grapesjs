@@ -69,7 +69,7 @@ describe('Dynamic Attributes', () => {
     testAttribute(cmp, 'dynamicAttribute', 'test-value');
     testStaticAttributes(cmp);
 
-    changeDataSourceValue(dsm);
+    changeDataSourceValue(dsm, 'id1');
     testAttribute(cmp, 'dynamicAttribute', 'changed-value');
   });
 
@@ -78,7 +78,7 @@ describe('Dynamic Attributes', () => {
       id: 'ds_id',
       records: [
         { id: 'id1', value: 'test-value' },
-        { id: 'id2', value: 'test-value2' },
+        { id: 'id2', value: 'second-test-value' },
       ],
     };
     dsm.add(dataSource);
@@ -95,6 +95,9 @@ describe('Dynamic Attributes', () => {
       tagName: 'input',
       attributes,
     })[0];
+
+    cmp.setAttributes({ dynamicAttribute: 'some-static-value' });
+    testAttribute(cmp, 'dynamicAttribute', 'some-static-value');
 
     cmp.setAttributes({
       dynamicAttribute: {
@@ -103,8 +106,11 @@ describe('Dynamic Attributes', () => {
         path: 'ds_id.id2.value',
       },
     });
-    changeDataSourceValue(dsm);
-    testAttribute(cmp, 'dynamicAttribute', 'test-value2');
+    changeDataSourceValue(dsm, 'id1');
+    testAttribute(cmp, 'dynamicAttribute', 'second-test-value');
+
+    changeDataSourceValue(dsm, 'id2');
+    testAttribute(cmp, 'dynamicAttribute', 'changed-value');
   });
 
   test('(Component.addAttributes) dynamic attributes should listen to the latest dynamic value', () => {
@@ -112,7 +118,7 @@ describe('Dynamic Attributes', () => {
       id: 'ds_id',
       records: [
         { id: 'id1', value: 'test-value' },
-        { id: 'id2', value: 'test-value2' },
+        { id: 'id2', value: 'second-test-value' },
       ],
     };
     dsm.add(dataSource);
@@ -130,6 +136,9 @@ describe('Dynamic Attributes', () => {
       attributes,
     })[0];
 
+    cmp.addAttributes({ dynamicAttribute: 'some-static-value' });
+    testAttribute(cmp, 'dynamicAttribute', 'some-static-value');
+
     cmp.addAttributes({
       dynamicAttribute: {
         type: DataVariableType,
@@ -137,8 +146,11 @@ describe('Dynamic Attributes', () => {
         path: 'ds_id.id2.value',
       },
     });
-    changeDataSourceValue(dsm);
-    testAttribute(cmp, 'dynamicAttribute', 'test-value2');
+    changeDataSourceValue(dsm, 'id1');
+    testAttribute(cmp, 'dynamicAttribute', 'second-test-value');
+
+    changeDataSourceValue(dsm, 'id2');
+    testAttribute(cmp, 'dynamicAttribute', 'changed-value');
   });
 
   test('dynamic attributes should stop listening to change if the value changed to static', () => {
@@ -167,11 +179,11 @@ describe('Dynamic Attributes', () => {
     cmp.setAttributes({
       dynamicAttribute: 'static-value',
     });
-    changeDataSourceValue(dsm);
+    changeDataSourceValue(dsm, 'id1');
     testAttribute(cmp, 'dynamicAttribute', 'static-value');
   });
 
-  test('dynamic attributes should stop listening to change if the value changed to dynamic value', () => {
+  test('dynamic attributes should start listening to change if the value changed to dynamic value', () => {
     const dataSource = {
       id: 'ds_id',
       records: [{ id: 'id1', value: 'test-value' }],
@@ -195,7 +207,7 @@ describe('Dynamic Attributes', () => {
       },
     });
     testAttribute(cmp, 'dynamicAttribute', 'test-value');
-    changeDataSourceValue(dsm);
+    changeDataSourceValue(dsm, 'id1');
     testAttribute(cmp, 'dynamicAttribute', 'changed-value');
   });
 
@@ -223,15 +235,17 @@ describe('Dynamic Attributes', () => {
     testStaticAttributes(cmp);
 
     cmp.removeAttributes('dynamicAttribute');
-    changeDataSourceValue(dsm);
+    changeDataSourceValue(dsm, 'id1');
     expect(cmp?.getAttributes()['dynamicAttribute']).toBe(undefined);
     const input = cmp.getEl();
     expect(input?.getAttribute('dynamicAttribute')).toBe(null);
   });
 });
 
-function changeDataSourceValue(dsm: DataSourceManager) {
-  dsm.get('ds_id').getRecord('id1')?.set('value', 'changed-value');
+function changeDataSourceValue(dsm: DataSourceManager, id: string) {
+  dsm.get('ds_id').getRecord(id)?.set('value', 'intermediate-value1');
+  dsm.get('ds_id').getRecord(id)?.set('value', 'intermediate-value2');
+  dsm.get('ds_id').getRecord(id)?.set('value', 'changed-value');
 }
 
 function testStaticAttributes(cmp: Component) {
