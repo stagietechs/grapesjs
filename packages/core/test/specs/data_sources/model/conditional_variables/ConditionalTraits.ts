@@ -1,13 +1,9 @@
 import { DataSourceManager, Editor } from '../../../../../src';
-import { DataVariableType } from '../../../../../src/data_sources/model/DataVariable';
-import { MissingConditionError } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
 import { ConditionalVariableType } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
-import { GenericOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/GenericOperator';
 import { NumberOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/NumberOperator';
-import Component from '../../../../../src/dom_components/model/Component';
 import ComponentWrapper from '../../../../../src/dom_components/model/ComponentWrapper';
 import EditorModel from '../../../../../src/editor/model/Editor';
-import { filterObjectForSnapshot, setupTestEditor } from '../../../../common';
+import { setupTestEditor } from '../../../../common';
 
 describe('conditional traits', () => {
   let editor: Editor;
