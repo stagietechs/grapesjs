@@ -8,19 +8,7 @@
  * });
  * ```
  *
- * ## Available Events
- *
- * You can make use of available events in this way
- * ```js
- * editor.on('EVENT-NAME', (some, argument) => {
- *    // do something
- * })
- * ```
- *
- * * `update` - The structure of the template is updated (its HTML/CSS)
- * * `undo` - Undo executed
- * * `redo` - Redo executed
- * * `load` - Editor is loaded
+ * {REPLACE_EVENTS}
  *
  * ### Components
  * Check the [Components](/api/components.html) module.

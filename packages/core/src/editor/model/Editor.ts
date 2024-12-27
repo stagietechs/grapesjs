@@ -3,7 +3,7 @@ import Backbone from 'backbone';
 import $ from '../../utils/cash-dom';
 import Extender from '../../utils/extender';
 import { hasWin, isEmptyObj, wait } from '../../utils/mixins';
-import { AddOptions, Model, Collection, ObjectAny } from '../../common';
+import { Model, Collection, ObjectAny } from '../../common';
 import Selected from './Selected';
 import FrameView from '../../canvas/view/FrameView';
 import Editor from '..';
