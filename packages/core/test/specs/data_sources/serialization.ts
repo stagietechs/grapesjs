@@ -91,6 +91,30 @@ describe('DataSource Serialization', () => {
       expect(snapshot).toMatchSnapshot(``);
     });
 
+    test('Dynamic Attributes', () => {
+      const dataVariable = {
+        type: DataVariableType,
+        defaultValue: 'default',
+        path: `${propsDataSource.id}.id1.value`,
+      };
+
+      cmpRoot.append({
+        tagName: 'input',
+        attributes: {
+          dynamicAttribute: dataVariable,
+        },
+      })[0];
+
+      const projectData = editor.getProjectData();
+      const page = projectData.pages[0];
+      const frame = page.frames[0];
+      const component = frame.component.components[0];
+      expect(component['attributes']['dynamicAttribute']).toEqual(dataVariable);
+
+      const snapshot = filterObjectForSnapshot(projectData);
+      expect(snapshot).toMatchSnapshot(``);
+    });
+
     test('ComponentDataVariable', () => {
       const dataVariable = {
         type: DataVariableType,
@@ -205,6 +229,72 @@ describe('DataSource Serialization', () => {
       const component = components.models[0];
       expect(component.get('content')).toEqual('test-value');
       expect(component.get('customProp')).toEqual('test-value');
+
+      dsm.get(propsDataSource.id).getRecord('id1')?.set('value', 'updated-value');
+      expect(component.get('content')).toEqual('updated-value');
+      expect(component.get('customProp')).toEqual('updated-value');
+    });
+
+    test('Dynamic Attributes', () => {
+      const dataVariable = {
+        type: DataVariableType,
+        defaultValue: 'default',
+        path: `${propsDataSource.id}.id1.value`,
+      };
+
+      const componentProjectData: ProjectData = {
+        assets: [],
+        pages: [
+          {
+            frames: [
+              {
+                component: {
+                  components: [
+                    {
+                      attributes: {
+                        dynamicAttribute: dataVariable,
+                      },
+                      tagName: 'input',
+                      void: true,
+                    },
+                  ],
+                  docEl: {
+                    tagName: 'html',
+                  },
+                  head: {
+                    type: 'head',
+                  },
+                  stylable: [
+                    'background',
+                    'background-color',
+                    'background-image',
+                    'background-repeat',
+                    'background-attachment',
+                    'background-position',
+                    'background-size',
+                  ],
+                  type: 'wrapper',
+                },
+                id: 'frameid',
+              },
+            ],
+            id: 'pageid',
+            type: 'main',
+          },
+        ],
+        styles: [],
+        symbols: [],
+        dataSources: [propsDataSource],
+      };
+
+      editor.loadProjectData(componentProjectData);
+
+      const components = editor.getComponents();
+      const component = components.at(0);
+      expect(component.getAttributes()['dynamicAttribute']).toEqual('test-value');
+
+      dsm.get(propsDataSource.id).getRecord('id1')?.set('value', 'updated-value');
+      expect(component.getAttributes()['dynamicAttribute']).toEqual('updated-value');
     });
 
     test('ComponentDataVariable', () => {
