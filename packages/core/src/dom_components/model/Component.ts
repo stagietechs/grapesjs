@@ -1,3 +1,4 @@
+import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 import {
   isUndefined,
   isFunction,
@@ -53,7 +54,7 @@ import {
 } from './SymbolUtils';
 import { ComponentDynamicValueWatcher } from './ComponentDynamicValueWatcher';
 import { DynamicValueWatcher } from './DynamicValueWatcher';
-import { DynamicValueDefinition } from '../../data_sources/types';
+import { CollectionVariableType } from '../../data_sources/model/collection_component/constants';
 
 export interface IComponent extends ExtractMethods<Component> {}
 export interface DynamicWatchersOptions {
@@ -75,6 +76,7 @@ export const keySymbol = '__symbol';
 export const keySymbolOvrd = '__symbol_ovrd';
 export const keyUpdate = ComponentsEvents.update;
 export const keyUpdateInside = ComponentsEvents.updateInside;
+export const keyCollectionsStateMap = '__collections_state_map';
 
 /**
  * The Component object represents a single node of our template structure, so when you update its properties the changes are
@@ -265,8 +267,22 @@ export default class Component extends StyleableModel<ComponentProperties> {
   componentDVListener: ComponentDynamicValueWatcher;
 
   constructor(props: ComponentProperties = {}, opt: ComponentOptions) {
-    super(props, opt);
-    this.componentDVListener = new ComponentDynamicValueWatcher(this, opt.em);
+    if (props[keyCollectionsStateMap]) {
+      // @ts-ignore
+      props.components = props.components?.forEach((component) => ({
+        ...component,
+        [keyCollectionsStateMap]: props[keyCollectionsStateMap],
+      }));
+    }
+    super(props, {
+      ...opt,
+      // @ts-ignore
+      [keyCollectionsStateMap]: props[keyCollectionsStateMap],
+    });
+    this.componentDVListener = new ComponentDynamicValueWatcher(this, {
+      em: opt.em,
+      collectionsStateMap: props[keyCollectionsStateMap],
+    });
     this.componentDVListener.addProps(props);
 
     bindAll(this, '__upSymbProps', '__upSymbCls', '__upSymbComps');
@@ -357,7 +373,9 @@ export default class Component extends StyleableModel<ComponentProperties> {
 
     // @ts-ignore
     const em = this.em || options.em;
-    const evaluatedAttributes = DynamicValueWatcher.getStaticValues(attributes, em);
+    // @ts-ignore
+    const collectionsStateMap = this.get(keyCollectionsStateMap) || options[keyCollectionsStateMap];
+    const evaluatedAttributes = DynamicValueWatcher.getStaticValues(attributes, { em, collectionsStateMap });
 
     const shouldSkipWatcherUpdates = options.skipWatcherUpdates || options.fromDataSource;
     if (!shouldSkipWatcherUpdates) {
@@ -687,7 +705,9 @@ export default class Component extends StyleableModel<ComponentProperties> {
   setAttributes(attrs: ObjectAny, opts: SetAttrOptions = { skipWatcherUpdates: false, fromDataSource: false }) {
     // @ts-ignore
     const em = this.em || opts.em;
-    const evaluatedAttributes = DynamicValueWatcher.getStaticValues(attrs, em);
+    // @ts-ignore
+    const collectionsStateMap = this.get(keyCollectionsStateMap) || opts[keyCollectionsStateMap];
+    const evaluatedAttributes = DynamicValueWatcher.getStaticValues(attrs, { em, collectionsStateMap });
     const shouldSkipWatcherUpdates = opts.skipWatcherUpdates || opts.fromDataSource;
     if (!shouldSkipWatcherUpdates) {
       this.componentDVListener.setAttributes(attrs);

@@ -1,10 +1,17 @@
 import EditorModel from '../../editor/model/Editor';
 import { DynamicValue, DynamicValueDefinition } from '../types';
+import { CollectionsStateMap } from './collection_component/types';
+import CollectionVariable from './collection_component/CollectionVariable';
+import { CollectionVariableDefinition } from '../../../test/specs/dom_components/model/ComponentTypes';
+import { CollectionVariableType } from './collection_component/constants';
 import { ConditionalVariableType, DataCondition } from './conditional_variables/DataCondition';
 import DataVariable, { DataVariableType } from './DataVariable';
 
 export function isDynamicValueDefinition(value: any): value is DynamicValueDefinition {
-  return typeof value === 'object' && [DataVariableType, ConditionalVariableType].includes(value?.type);
+  return (
+    typeof value === 'object' &&
+    [DataVariableType, ConditionalVariableType, CollectionVariableType].includes(value?.type)
+  );
 }
 
 export function isDynamicValue(value: any): value is DynamicValue {
@@ -23,7 +30,14 @@ export function evaluateVariable(variable: any, em: EditorModel) {
   return isDataVariable(variable) ? new DataVariable(variable, { em }).getDataValue() : variable;
 }
 
-export function getDynamicValueInstance(valueDefinition: DynamicValueDefinition, em: EditorModel): DynamicValue {
+export function getDynamicValueInstance(
+  valueDefinition: DynamicValueDefinition,
+  options: {
+    em: EditorModel;
+    collectionsStateMap?: CollectionsStateMap;
+  },
+): DynamicValue {
+  const { em } = options;
   const dynamicType = valueDefinition.type;
   let dynamicVariable: DynamicValue;
 
@@ -36,6 +50,11 @@ export function getDynamicValueInstance(valueDefinition: DynamicValueDefinition,
       dynamicVariable = new DataCondition(condition, ifTrue, ifFalse, { em: em });
       break;
     }
+    case CollectionVariableType: {
+      // @ts-ignore
+      dynamicVariable = new CollectionVariable(valueDefinition, options);
+      break;
+    }
     default:
       throw new Error(`Unsupported dynamic type: ${dynamicType}`);
   }
@@ -43,8 +62,14 @@ export function getDynamicValueInstance(valueDefinition: DynamicValueDefinition,
   return dynamicVariable;
 }
 
-export function evaluateDynamicValueDefinition(valueDefinition: DynamicValueDefinition, em: EditorModel) {
-  const dynamicVariable = getDynamicValueInstance(valueDefinition, em);
+export function evaluateDynamicValueDefinition(
+  valueDefinition: DynamicValueDefinition,
+  options: {
+    em: EditorModel;
+    collectionsStateMap?: CollectionsStateMap;
+  },
+) {
+  const dynamicVariable = getDynamicValueInstance(valueDefinition, options);
 
   return { variable: dynamicVariable, value: dynamicVariable.getDataValue() };
 }

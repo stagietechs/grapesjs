@@ -1,3 +1,5 @@
+import { CollectionVariableType } from '../../../../src/data_sources/model/collection_component/constants';
+import { CollectionState } from '../../../../src/data_sources/model/collection_component/types';
 import Editor from '../../../../src/editor';
 
 describe('Component Types', () => {
@@ -96,3 +98,9 @@ describe('Component Types', () => {
     expect(cmp.components().at(0).is('svg-in')).toBe(true);
   });
 });
+export type CollectionVariableDefinition = {
+  type: typeof CollectionVariableType;
+  variable_type: keyof CollectionState;
+  collection_name?: string;
+  path?: string;
+};

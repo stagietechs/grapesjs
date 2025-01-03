@@ -1,3 +1,4 @@
+import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 import { ObjectAny } from '../../common';
 import DynamicVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
 import { evaluateDynamicValueDefinition, isDynamicValueDefinition } from '../../data_sources/model/utils';
@@ -5,13 +6,27 @@ import { DynamicValue } from '../../data_sources/types';
 import EditorModel from '../../editor/model/Editor';
 
 export class DynamicValueWatcher {
-  dynamicVariableListeners: { [key: string]: DynamicVariableListenerManager } = {};
+  private dynamicVariableListeners: { [key: string]: DynamicVariableListenerManager } = {};
+  private em: EditorModel;
+  private collectionsStateMap: CollectionsStateMap | undefined;
   constructor(
     private updateFn: (key: string, value: any) => void,
-    private em: EditorModel,
-  ) {}
+    options: {
+      em: EditorModel;
+      collectionsStateMap?: CollectionsStateMap;
+    },
+  ) {
+    this.em = options.em;
+    this.collectionsStateMap = options.collectionsStateMap;
+  }
 
-  static getStaticValues(values: ObjectAny | undefined, em: EditorModel): ObjectAny {
+  static getStaticValues(
+    values: ObjectAny | undefined,
+    options: {
+      em: EditorModel;
+      collectionsStateMap?: CollectionsStateMap;
+    },
+  ): ObjectAny {
     if (!values) return {};
     const evaluatedValues: ObjectAny = { ...values };
     const propsKeys = Object.keys(values);
@@ -20,7 +35,7 @@ export class DynamicValueWatcher {
       const valueDefinition = values[key];
       if (!isDynamicValueDefinition(valueDefinition)) continue;
 
-      const { value } = evaluateDynamicValueDefinition(valueDefinition, em);
+      const { value } = evaluateDynamicValueDefinition(valueDefinition, options);
       evaluatedValues[key] = value;
     }
 
@@ -68,7 +83,10 @@ export class DynamicValueWatcher {
       if (!isDynamicValueDefinition(values[key])) {
         continue;
       }
-      const { variable } = evaluateDynamicValueDefinition(values[key], this.em);
+      const { variable } = evaluateDynamicValueDefinition(values[key], {
+        em: this.em,
+        collectionsStateMap: this.collectionsStateMap,
+      });
       dynamicValues[key] = variable;
     }
 

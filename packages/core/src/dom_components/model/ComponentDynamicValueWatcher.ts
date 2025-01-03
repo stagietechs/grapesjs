@@ -1,4 +1,5 @@
 import { ObjectAny } from '../../common';
+import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 import EditorModel from '../../editor/model/Editor';
 import Component from './Component';
 import { DynamicValueWatcher } from './DynamicValueWatcher';
@@ -9,10 +10,13 @@ export class ComponentDynamicValueWatcher {
 
   constructor(
     private component: Component,
-    em: EditorModel,
+    options: {
+      em: EditorModel;
+      collectionsStateMap: CollectionsStateMap;
+    },
   ) {
-    this.propertyWatcher = new DynamicValueWatcher(this.createPropertyUpdater(), em);
-    this.attributeWatcher = new DynamicValueWatcher(this.createAttributeUpdater(), em);
+    this.propertyWatcher = new DynamicValueWatcher(this.createPropertyUpdater(), options);
+    this.attributeWatcher = new DynamicValueWatcher(this.createAttributeUpdater(), options);
   }
 
   private createPropertyUpdater() {

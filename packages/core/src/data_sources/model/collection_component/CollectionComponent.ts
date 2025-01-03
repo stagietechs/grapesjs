@@ -1,60 +1,24 @@
-import { DataVariableDefinition, DataVariableType } from './../DataVariable';
+import { DataVariableType } from './../DataVariable';
 import { isArray } from 'underscore';
 import Component from '../../../dom_components/model/Component';
 import { ComponentDefinition, ComponentOptions, ComponentProperties } from '../../../dom_components/model/types';
 import { toLowerCase } from '../../../utils/mixins';
-import { ConditionDefinition } from '../conditional_variables/DataCondition';
 import DataSource from '../DataSource';
 import { ObjectAny } from '../../../common';
 import EditorModel from '../../../editor/model/Editor';
-
-export const CollectionComponentType = 'collection-component';
-export const CollectionVariableType = 'parent-collection-variable';
-
-type CollectionVariable = {
-  type: typeof CollectionVariableType;
-  variable_type: keyof CollectionState;
-  collection_name?: string;
-  path?: string;
-};
-
-type CollectionDataSource = any[] | DataVariableDefinition | CollectionVariable;
-
-type CollectionConfig = {
-  start_index?: number;
-  end_index?: number | ConditionDefinition;
-  dataSource: CollectionDataSource;
-};
-
-type CollectionState = {
-  current_index: number;
-  start_index: number;
-  current_item: any;
-  end_index: number;
-  collection_name?: string;
-  total_items: number;
-  remaining_items: number;
-};
-
-type CollectionsStateMap = {
-  [key: string]: CollectionState;
-};
-
-type CollectionDefinition = {
-  type: typeof CollectionComponentType;
-  collection_name?: string;
-  config: CollectionConfig;
-  block: ComponentDefinition;
-};
-
-export const collectionDefinitionKey = 'collectionDefinition';
-export const collectionsStateMapKey = 'collectionsItems';
-export const innerCollectionStateKey = 'innerCollectionState';
+import { keyCollectionsStateMap } from '../../../dom_components/model/Component';
+import { CollectionDefinition, CollectionState, CollectionsStateMap } from './types';
+import {
+  keyCollectionDefinition,
+  keyInnerCollectionState,
+  CollectionComponentType,
+  CollectionVariableType,
+} from './constants';
 
 export default class CollectionComponent extends Component {
   constructor(props: CollectionDefinition & ComponentProperties, opt: ComponentOptions) {
     const em = opt.em;
-    const { collection_name, block, config } = props[collectionDefinitionKey];
+    const { collection_name, block, config } = props[keyCollectionDefinition];
     if (!block) {
       throw new Error('The "block" property is required in the collection definition.');
     }
@@ -83,16 +47,22 @@ export default class CollectionComponent extends Component {
       };
 
       const collectionsStateMap: CollectionsStateMap = {
-        ...props[collectionsStateMapKey],
+        ...props[keyCollectionsStateMap],
         ...(collection_name && { [collection_name]: collectionState }),
-        [innerCollectionStateKey]: collectionState,
+        [keyInnerCollectionState]: collectionState,
       };
 
       if (index === start_index) {
         const { clonedBlock } = resolveBlockValues(collectionsStateMap, block);
         const type = em.Components.getType(clonedBlock?.type || 'default');
         const model = type.model;
-        blockComponent = new model(clonedBlock, opt);
+        blockComponent = new model(
+          {
+            ...clonedBlock,
+            [keyCollectionsStateMap]: collectionsStateMap,
+          },
+          opt,
+        );
       }
       const instance = em.Components.addSymbol(blockComponent!);
       const cmpDefinition = resolveComponent(instance!, block, collectionsStateMap, em);
@@ -172,12 +142,13 @@ function resolveComponent(
   const componentDefinition: ComponentDefinition = {
     ...componentJSON,
     components: children,
-    [collectionsStateMapKey]: collectionsStateMap,
+    [keyCollectionsStateMap]: collectionsStateMap,
   };
 
   return componentDefinition;
 }
 
+// TODO: remove this function
 function resolveBlockValues(collectionsStateMap: CollectionsStateMap, block: ObjectAny) {
   const clonedBlock = deepCloneObject(block);
   const resolvedCollectionValues: ObjectAny = {};
@@ -186,26 +157,12 @@ function resolveBlockValues(collectionsStateMap: CollectionsStateMap, block: Obj
     const blockKeys = Object.keys(clonedBlock);
     for (const key of blockKeys) {
       let blockValue = clonedBlock[key];
-      if (key === collectionDefinitionKey) continue;
+      if (key === keyCollectionDefinition) continue;
       let hasCollectionVariable = false;
 
       if (typeof blockValue === 'object') {
-        const isCollectionVariable = blockValue.type === CollectionVariableType;
+        const isCollectionVariable = blockValue.type === 'parent-collection-variable';
         if (isCollectionVariable) {
-          const {
-            variable_type,
-            collection_name = innerCollectionStateKey,
-            path = '',
-          } = blockValue as CollectionVariable;
-          const collectionItem = collectionsStateMap[collection_name];
-          if (!collectionItem) {
-            throw new Error(`Collection not found: ${collection_name}`);
-          }
-          if (!variable_type) {
-            throw new Error(`Missing collection variable type for collection: ${collection_name}`);
-          }
-          clonedBlock[key] = resolveCurrentItem(variable_type, collectionItem, path);
-
           hasCollectionVariable = true;
         } else if (Array.isArray(blockValue)) {
           clonedBlock[key] = blockValue.map((arrayItem: any) => {
@@ -239,31 +196,6 @@ function resolveBlockValues(collectionsStateMap: CollectionsStateMap, block: Obj
   }
 
   return { clonedBlock, resolvedCollectionValues };
-}
-
-function resolveCurrentItem(
-  variableType: CollectionVariable['variable_type'],
-  collectionItem: CollectionState,
-  path: string,
-) {
-  if (variableType === 'current_item') {
-    const valueIsDataVariable = collectionItem.current_item?.type === DataVariableType;
-    if (valueIsDataVariable) {
-      const currentItem_path = collectionItem.current_item.path;
-      const resolvedPath = currentItem_path ? `${currentItem_path}.${path}` : path;
-      return {
-        ...collectionItem.current_item,
-        path: resolvedPath,
-      };
-    } else if (!!path) {
-      if (!collectionItem.current_item?.[path]) {
-        throw new Error(`Path not found in current item: ${path}`);
-      }
-
-      return collectionItem.current_item[path];
-    }
-  }
-  return collectionItem[variableType];
 }
 
 function isEmptyObject(itemOverrideKeys: ObjectAny) {
