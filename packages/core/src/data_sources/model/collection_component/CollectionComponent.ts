@@ -1,17 +1,17 @@
 import { DataVariableType } from './../DataVariable';
 import { isArray } from 'underscore';
-import Component from '../../../dom_components/model/Component';
+import Component, { keySymbol, keySymbolOvrd, keySymbols } from '../../../dom_components/model/Component';
 import { ComponentDefinition, ComponentOptions, ComponentProperties } from '../../../dom_components/model/types';
 import { toLowerCase } from '../../../utils/mixins';
 import DataSource from '../DataSource';
 import { ObjectAny } from '../../../common';
 import EditorModel from '../../../editor/model/Editor';
 import { keyCollectionsStateMap } from '../../../dom_components/model/Component';
-import { CollectionDefinition, CollectionState, CollectionsStateMap } from './types';
+import { CollectionComponentDefinition, CollectionDefinition, CollectionState, CollectionsStateMap } from './types';
 import { keyCollectionDefinition, keyInnerCollectionState, CollectionComponentType } from './constants';
 
 export default class CollectionComponent extends Component {
-  constructor(props: CollectionDefinition & ComponentProperties, opt: ComponentOptions) {
+  constructor(props: CollectionComponentDefinition, opt: ComponentOptions) {
     const em = opt.em;
     const { collection_name, block, config } = props[keyCollectionDefinition];
     if (!block) {
@@ -42,12 +42,13 @@ export default class CollectionComponent extends Component {
       };
 
       const collectionsStateMap: CollectionsStateMap = {
-        ...props[keyCollectionsStateMap],
+        ...(props[keyCollectionsStateMap] || {}),
         ...(collection_name && { [collection_name]: collectionState }),
         [keyInnerCollectionState]: collectionState,
       };
 
       if (index === start_index) {
+        // @ts-ignore
         const type = em.Components.getType(block?.type || 'default');
         const model = type.model;
         blockComponent = new model(
@@ -70,12 +71,25 @@ export default class CollectionComponent extends Component {
       components: components,
       dropbbable: false,
     };
+
     // @ts-ignore
     super(conditionalCmptDef, opt);
   }
 
   static isComponent(el: HTMLElement) {
     return toLowerCase(el.tagName) === CollectionComponentType;
+  }
+
+  toJSON(opts?: ObjectAny) {
+    const json = super.toJSON(opts) as CollectionComponentDefinition;
+
+    const firstChild = this.components().at(0)?.toJSON() || {};
+    const keysToRemove = ['attributes?.id', keySymbol, keySymbols, keySymbolOvrd, keyCollectionsStateMap];
+    keysToRemove.forEach((key) => delete firstChild[key]);
+    json[keyCollectionDefinition].block = firstChild;
+
+    delete json.components;
+    return json;
   }
 }
 

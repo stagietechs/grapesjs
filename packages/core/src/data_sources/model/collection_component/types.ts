@@ -1,14 +1,13 @@
-import { CollectionComponentType } from './constants';
+import { CollectionComponentType, keyCollectionDefinition } from './constants';
 
-import { ComponentDefinition } from '../../../dom_components/model/types';
+import { ComponentDefinition, ComponentProperties } from '../../../dom_components/model/types';
 import { CollectionVariableDefinition } from '../../../../test/specs/dom_components/model/ComponentTypes';
 import { DataVariableDefinition } from '../DataVariable';
-import { ConditionDefinition } from '../conditional_variables/DataCondition';
 
 type CollectionDataSource = any[] | DataVariableDefinition | CollectionVariableDefinition;
 type CollectionConfig = {
   start_index?: number;
-  end_index?: number | ConditionDefinition;
+  end_index?: number;
   dataSource: CollectionDataSource;
 };
 
@@ -25,6 +24,10 @@ export type CollectionState = {
 export type CollectionsStateMap = {
   [key: string]: CollectionState;
 };
+
+export type CollectionComponentDefinition = {
+  [keyCollectionDefinition]: CollectionDefinition;
+} & ComponentDefinition;
 
 export type CollectionDefinition = {
   type: typeof CollectionComponentType;
