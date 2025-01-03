@@ -368,10 +368,10 @@ export default class Component extends StyleableModel<ComponentProperties> {
     }
 
     // @ts-ignore
-    const componentDVListener = this.componentDVListener || options.componentDVListener;
-    const evaluatedAttributes = componentDVListener.addProps(attributes, options);
+    this.componentDVListener = this.componentDVListener || options.componentDVListener;
+    const evaluatedProps = this.componentDVListener.addProps(attributes, options);
 
-    return super.set(evaluatedAttributes, options);
+    return super.set(evaluatedProps, options);
   }
 
   __postAdd(opts: { recursive?: boolean } = {}) {
@@ -692,9 +692,7 @@ export default class Component extends StyleableModel<ComponentProperties> {
    * component.setAttributes({ id: 'test', 'data-key': 'value' });
    */
   setAttributes(attrs: ObjectAny, opts: SetAttrOptions = { skipWatcherUpdates: false, fromDataSource: false }) {
-    // @ts-ignore
-    const componentDVListener = this.componentDVListener || opts.componentDVListener;
-    const evaluatedAttributes = componentDVListener.setAttributes(attrs, opts);
+    const evaluatedAttributes = this.componentDVListener.setAttributes(attrs, opts);
     this.set('attributes', { ...evaluatedAttributes }, opts);
 
     return this;

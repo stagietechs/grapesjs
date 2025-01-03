@@ -8,12 +8,7 @@ import { ObjectAny } from '../../../common';
 import EditorModel from '../../../editor/model/Editor';
 import { keyCollectionsStateMap } from '../../../dom_components/model/Component';
 import { CollectionDefinition, CollectionState, CollectionsStateMap } from './types';
-import {
-  keyCollectionDefinition,
-  keyInnerCollectionState,
-  CollectionComponentType,
-  CollectionVariableType,
-} from './constants';
+import { keyCollectionDefinition, keyInnerCollectionState, CollectionComponentType } from './constants';
 
 export default class CollectionComponent extends Component {
   constructor(props: CollectionDefinition & ComponentProperties, opt: ComponentOptions) {
@@ -53,12 +48,11 @@ export default class CollectionComponent extends Component {
       };
 
       if (index === start_index) {
-        const { clonedBlock } = resolveBlockValues(collectionsStateMap, block);
-        const type = em.Components.getType(clonedBlock?.type || 'default');
+        const type = em.Components.getType(block?.type || 'default');
         const model = type.model;
         blockComponent = new model(
           {
-            ...clonedBlock,
+            ...block,
             [keyCollectionsStateMap]: collectionsStateMap,
           },
           opt,
@@ -126,9 +120,8 @@ function resolveComponent(
   collectionsStateMap: CollectionsStateMap,
   em: EditorModel,
 ) {
-  const { resolvedCollectionValues } = resolveBlockValues(collectionsStateMap, block);
-  Object.keys(resolvedCollectionValues).length && component!.setSymbolOverride(Object.keys(resolvedCollectionValues));
-  component!.set(resolvedCollectionValues);
+  // @ts-ignore
+  component!.set(block);
 
   const children: ComponentDefinition[] = [];
   for (let index = 0; index < component!.components().length; index++) {
@@ -146,82 +139,4 @@ function resolveComponent(
   };
 
   return componentDefinition;
-}
-
-// TODO: remove this function
-function resolveBlockValues(collectionsStateMap: CollectionsStateMap, block: ObjectAny) {
-  const clonedBlock = deepCloneObject(block);
-  const resolvedCollectionValues: ObjectAny = {};
-
-  if (typeof clonedBlock === 'object') {
-    const blockKeys = Object.keys(clonedBlock);
-    for (const key of blockKeys) {
-      let blockValue = clonedBlock[key];
-      if (key === keyCollectionDefinition) continue;
-      let hasCollectionVariable = false;
-
-      if (typeof blockValue === 'object') {
-        const isCollectionVariable = blockValue.type === 'parent-collection-variable';
-        if (isCollectionVariable) {
-          hasCollectionVariable = true;
-        } else if (Array.isArray(blockValue)) {
-          clonedBlock[key] = blockValue.map((arrayItem: any) => {
-            const { clonedBlock, resolvedCollectionValues: itemOverrideKeys } = resolveBlockValues(
-              collectionsStateMap,
-              arrayItem,
-            );
-            if (!isEmptyObject(itemOverrideKeys)) {
-              hasCollectionVariable = true;
-            }
-
-            return typeof arrayItem === 'object' ? clonedBlock : arrayItem;
-          });
-        } else {
-          const { clonedBlock, resolvedCollectionValues: itemOverrideKeys } = resolveBlockValues(
-            collectionsStateMap,
-            blockValue,
-          );
-          clonedBlock[key] = clonedBlock;
-
-          if (!isEmptyObject(itemOverrideKeys)) {
-            hasCollectionVariable = true;
-          }
-        }
-
-        if (hasCollectionVariable && key !== 'components') {
-          resolvedCollectionValues[key] = clonedBlock[key];
-        }
-      }
-    }
-  }
-
-  return { clonedBlock, resolvedCollectionValues };
-}
-
-function isEmptyObject(itemOverrideKeys: ObjectAny) {
-  return Object.keys(itemOverrideKeys).length === 0;
-}
-
-/**
- * Deeply clones an object.
- * @template T The type of the object to clone.
- * @param {T} obj The object to clone.
- * @returns {T} A deep clone of the object, or the original object if it's not an object or is null. Returns undefined if input is undefined.
- */
-function deepCloneObject<T extends Record<string, any> | null | undefined>(obj: T): T {
-  if (obj === null) return null as T;
-  if (obj === undefined) return undefined as T;
-  if (typeof obj !== 'object' || Array.isArray(obj)) {
-    return obj; // Return primitives directly
-  }
-
-  const clonedObj: Record<string, any> = {};
-
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      clonedObj[key] = deepCloneObject(obj[key]);
-    }
-  }
-
-  return clonedObj as T;
 }

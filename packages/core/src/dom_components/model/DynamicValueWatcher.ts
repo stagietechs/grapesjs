@@ -1,3 +1,4 @@
+import { DynamicValueDefinition } from './../../data_sources/types';
 import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 import { ObjectAny } from '../../common';
 import DynamicVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
@@ -5,6 +6,7 @@ import { evaluateDynamicValueDefinition, isDynamicValueDefinition } from '../../
 import { DynamicValue } from '../../data_sources/types';
 import EditorModel from '../../editor/model/Editor';
 import Component from './Component';
+import CollectionVariable from '../../data_sources/model/collection_component/CollectionVariable';
 
 export interface DynamicWatchersOptions {
   skipWatcherUpdates?: boolean;
@@ -22,22 +24,6 @@ export class DynamicValueWatcher {
     },
   ) {}
 
-  getStaticValues(values: ObjectAny | undefined): ObjectAny {
-    if (!values) return {};
-    const evaluatedValues: ObjectAny = { ...values };
-    const propsKeys = Object.keys(values);
-
-    for (const key of propsKeys) {
-      const valueDefinition = values[key];
-      if (!isDynamicValueDefinition(valueDefinition)) continue;
-
-      const { value } = evaluateDynamicValueDefinition(valueDefinition, this.options);
-      evaluatedValues[key] = value;
-    }
-
-    return evaluatedValues;
-  }
-
   bindComponent(component: Component) {
     this.component = component;
   }
@@ -53,7 +39,7 @@ export class DynamicValueWatcher {
 
   addDynamicValues(values: ObjectAny | undefined, options: DynamicWatchersOptions = {}) {
     if (!values) return {};
-    const { evaluatedValues, dynamicValues } = this.getDynamicValues(values);
+    const { evaluatedValues, dynamicValues } = this.evaluateValues(values);
 
     const shouldSkipWatcherUpdates = options.skipWatcherUpdates || options.fromDataSource;
     if (!shouldSkipWatcherUpdates) {
@@ -79,13 +65,14 @@ export class DynamicValueWatcher {
     }
   }
 
-  private getDynamicValues(values: ObjectAny) {
+  private evaluateValues(values: ObjectAny) {
     const dynamicValues: {
       [key: string]: DynamicValue;
     } = {};
     const evaluatedValues: {
-      [key: string]: DynamicValue;
+      [key: string]: any;
     } = { ...values };
+    const valuesToBeOverriden: string[] = [];
     const propsKeys = Object.keys(values);
     for (let index = 0; index < propsKeys.length; index++) {
       const key = propsKeys[index];
@@ -95,9 +82,12 @@ export class DynamicValueWatcher {
       const { value, variable } = evaluateDynamicValueDefinition(values[key], this.options);
       evaluatedValues[key] = value;
       dynamicValues[key] = variable;
+      if (variable instanceof CollectionVariable) {
+        valuesToBeOverriden.push(key);
+      }
     }
 
-    return { evaluatedValues, dynamicValues };
+    return { evaluatedValues, dynamicValues, valuesToBeOverriden };
   }
 
   /**
@@ -113,6 +103,8 @@ export class DynamicValueWatcher {
         delete this.dynamicVariableListeners[key];
       }
     });
+
+    return propsKeys;
   }
 
   getSerializableValues(values: ObjectAny | undefined) {
@@ -138,5 +130,14 @@ export class DynamicValueWatcher {
     }
 
     return serializableValues;
+  }
+
+  getDynamicValuesOfType(type: DynamicValueDefinition['type']) {
+    const keys = Object.keys(this.dynamicVariableListeners).filter((key: string) => {
+      // @ts-ignore
+      return this.dynamicVariableListeners[key].dynamicVariable.get('type') === type;
+    });
+
+    return keys;
   }
 }

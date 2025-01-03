@@ -1,4 +1,5 @@
 import { ObjectAny } from '../../common';
+import { CollectionVariableType } from '../../data_sources/model/collection_component/constants';
 import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 import EditorModel from '../../editor/model/Editor';
 import Component from './Component';
@@ -10,7 +11,7 @@ export class ComponentDynamicValueWatcher {
   private attributeWatcher: DynamicValueWatcher;
 
   constructor(
-    component: Component | undefined,
+    private component: Component | undefined,
     options: {
       em: EditorModel;
       collectionsStateMap: CollectionsStateMap;
@@ -19,6 +20,7 @@ export class ComponentDynamicValueWatcher {
     this.propertyWatcher = new DynamicValueWatcher(component, this.createPropertyUpdater(), options);
     this.attributeWatcher = new DynamicValueWatcher(component, this.createAttributeUpdater(), options);
   }
+
   private createPropertyUpdater() {
     return (component: Component | undefined, key: string, value: any) => {
       if (!component) return;
@@ -34,24 +36,45 @@ export class ComponentDynamicValueWatcher {
   }
 
   bindComponent(component: Component) {
+    this.component = component;
     this.propertyWatcher.bindComponent(component);
     this.attributeWatcher.bindComponent(component);
+    this.updateSymbolOverride();
   }
 
   addProps(props: ObjectAny, options?: DynamicWatchersOptions) {
-    return this.propertyWatcher.addDynamicValues(props, options);
+    const evaluatedProps = this.propertyWatcher.addDynamicValues(props, options);
+    return evaluatedProps;
   }
 
   addAttributes(attributes: ObjectAny, options?: DynamicWatchersOptions) {
-    return this.attributeWatcher.addDynamicValues(attributes, options);
+    const evaluatedAttributes = this.attributeWatcher.addDynamicValues(attributes, options);
+    this.updateSymbolOverride();
+    return evaluatedAttributes;
   }
 
   setAttributes(attributes: ObjectAny, options?: DynamicWatchersOptions) {
-    return this.attributeWatcher.setDynamicValues(attributes, options);
+    const evaluatedAttributes = this.attributeWatcher.setDynamicValues(attributes, options);
+    this.updateSymbolOverride();
+    return evaluatedAttributes;
   }
 
   removeAttributes(attributes: string[]) {
     this.attributeWatcher.removeListeners(attributes);
+    this.updateSymbolOverride();
+  }
+
+  updateSymbolOverride() {
+    if (!this.component) return;
+
+    const keys = this.propertyWatcher.getDynamicValuesOfType(CollectionVariableType);
+    const attributesKeys = this.attributeWatcher.getDynamicValuesOfType(CollectionVariableType);
+
+    const combinedKeys = [...keys];
+    const haveOverridenAttributes = Object.keys(attributesKeys).length;
+    if (haveOverridenAttributes) combinedKeys.push('attributes');
+
+    this.component.setSymbolOverride(combinedKeys);
   }
 
   getDynamicPropsDefs() {
