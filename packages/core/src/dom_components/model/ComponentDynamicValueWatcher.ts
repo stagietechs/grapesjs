@@ -74,6 +74,7 @@ export class ComponentDynamicValueWatcher {
     const haveOverridenAttributes = Object.keys(attributesKeys).length;
     if (haveOverridenAttributes) combinedKeys.push('attributes');
 
+    if (!combinedKeys.length && !this.component.getSymbolOverride()) return;
     this.component.setSymbolOverride(combinedKeys);
   }
 

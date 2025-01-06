@@ -3,10 +3,8 @@ import { CollectionsStateMap } from '../../data_sources/model/collection_compone
 import { ObjectAny } from '../../common';
 import DynamicVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
 import { evaluateDynamicValueDefinition, isDynamicValueDefinition } from '../../data_sources/model/utils';
-import { DynamicValue } from '../../data_sources/types';
 import EditorModel from '../../editor/model/Editor';
 import Component from './Component';
-import CollectionVariable from '../../data_sources/model/collection_component/CollectionVariable';
 
 export interface DynamicWatchersOptions {
   skipWatcherUpdates?: boolean;
@@ -39,25 +37,30 @@ export class DynamicValueWatcher {
 
   addDynamicValues(values: ObjectAny | undefined, options: DynamicWatchersOptions = {}) {
     if (!values) return {};
-    const { evaluatedValues, dynamicValues } = this.evaluateValues(values);
+    const evaluatedValues = this.evaluateValues(values);
 
     const shouldSkipWatcherUpdates = options.skipWatcherUpdates || options.fromDataSource;
     if (!shouldSkipWatcherUpdates) {
-      this.updateListeners(dynamicValues);
+      this.updateListeners(values);
     }
 
     return evaluatedValues;
   }
 
-  private updateListeners(dynamicProps: { [key: string]: DynamicValue }) {
+  private updateListeners(values: { [key: string]: any }) {
     const em = this.options.em;
-    this.removeListeners(Object.keys(dynamicProps));
-    const propsKeys = Object.keys(dynamicProps);
+    this.removeListeners(Object.keys(values));
+    const propsKeys = Object.keys(values);
     for (let index = 0; index < propsKeys.length; index++) {
       const key = propsKeys[index];
+      if (!isDynamicValueDefinition(values[key])) {
+        continue;
+      }
+
+      const { variable } = evaluateDynamicValueDefinition(values[key], this.options);
       this.dynamicVariableListeners[key] = new DynamicVariableListenerManager({
         em: em,
-        dataVariable: dynamicProps[key],
+        dataVariable: variable,
         updateValueFromDataVariable: (value: any) => {
           this.updateFn.bind(this)(this.component, key, value);
         },
@@ -66,28 +69,20 @@ export class DynamicValueWatcher {
   }
 
   private evaluateValues(values: ObjectAny) {
-    const dynamicValues: {
-      [key: string]: DynamicValue;
-    } = {};
     const evaluatedValues: {
       [key: string]: any;
     } = { ...values };
-    const valuesToBeOverriden: string[] = [];
     const propsKeys = Object.keys(values);
     for (let index = 0; index < propsKeys.length; index++) {
       const key = propsKeys[index];
       if (!isDynamicValueDefinition(values[key])) {
         continue;
       }
-      const { value, variable } = evaluateDynamicValueDefinition(values[key], this.options);
+      const { value } = evaluateDynamicValueDefinition(values[key], this.options);
       evaluatedValues[key] = value;
-      dynamicValues[key] = variable;
-      if (variable instanceof CollectionVariable) {
-        valuesToBeOverriden.push(key);
-      }
     }
 
-    return { evaluatedValues, dynamicValues, valuesToBeOverriden };
+    return evaluatedValues;
   }
 
   /**

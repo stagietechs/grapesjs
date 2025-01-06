@@ -1,4 +1,4 @@
-import { DataVariableType } from './../DataVariable';
+import DataVariable, { DataVariableType } from './../DataVariable';
 import { isArray } from 'underscore';
 import Component, { keySymbol, keySymbolOvrd, keySymbols } from '../../../dom_components/model/Component';
 import { ComponentDefinition, ComponentOptions, ComponentProperties } from '../../../dom_components/model/types';
@@ -9,6 +9,7 @@ import EditorModel from '../../../editor/model/Editor';
 import { keyCollectionsStateMap } from '../../../dom_components/model/Component';
 import { CollectionComponentDefinition, CollectionDefinition, CollectionState, CollectionsStateMap } from './types';
 import { keyCollectionDefinition, keyInnerCollectionState, CollectionComponentType } from './constants';
+import DynamicVariableListenerManager from '../DataVariableListenerManager';
 
 export default class CollectionComponent extends Component {
   constructor(props: CollectionComponentDefinition, opt: ComponentOptions) {
@@ -32,10 +33,33 @@ export default class CollectionComponent extends Component {
 
     // @ts-ignore
     super(conditionalCmptDef, opt);
+
+    if (this.hasDynamicDataSource()) {
+      const path = this.get(keyCollectionDefinition).config.dataSource?.path;
+      new DynamicVariableListenerManager({
+        em: em,
+        dataVariable: new DataVariable(
+          {
+            type: 'data-variable',
+            path,
+          },
+          { em },
+        ),
+        updateValueFromDataVariable: () => {
+          const collectionItems = getCollectionItems(em, collectionDefinition, parentCollectionStateMap, opt);
+          this.components(collectionItems);
+        },
+      });
+    }
   }
 
   static isComponent(el: HTMLElement) {
     return toLowerCase(el.tagName) === CollectionComponentType;
+  }
+
+  hasDynamicDataSource() {
+    const dataSource = this.get(keyCollectionDefinition).config.dataSource;
+    return typeof dataSource === 'object' && dataSource.type === DataVariableType;
   }
 
   toJSON(opts?: ObjectAny) {
@@ -109,7 +133,7 @@ function getCollectionItems(
 
     components.push(cmpDefinition);
   }
-  
+
   return components;
 }
 
