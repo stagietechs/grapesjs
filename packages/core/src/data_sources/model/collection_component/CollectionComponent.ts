@@ -111,7 +111,7 @@ function getCollectionItems(
 
   let items: any[] = getDataSourceItems(config.dataSource, em);
   const start_index = Math.max(0, config.start_index || 0);
-  const end_index = Math.min(items.length - 1, config.end_index || Number.MAX_VALUE);
+  const end_index = Math.min(items.length - 1, config.end_index !== undefined ? config.end_index : Number.MAX_VALUE);
 
   const total_items = end_index - start_index + 1;
   let blockComponent: Component;
