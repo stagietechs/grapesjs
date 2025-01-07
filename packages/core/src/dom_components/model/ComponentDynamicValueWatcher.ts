@@ -42,18 +42,23 @@ export class ComponentDynamicValueWatcher {
     this.updateSymbolOverride();
   }
 
-  addProps(props: ObjectAny, options?: DynamicWatchersOptions) {
+  addProps(props: ObjectAny, options: DynamicWatchersOptions = {}) {
     const evaluatedProps = this.propertyWatcher.addDynamicValues(props, options);
+    const shouldSkipOverridUpdates = options.skipWatcherUpdates || options.fromDataSource;
+    if (!shouldSkipOverridUpdates) {
+      this.updateSymbolOverride();
+    }
+
     return evaluatedProps;
   }
 
-  addAttributes(attributes: ObjectAny, options?: DynamicWatchersOptions) {
+  addAttributes(attributes: ObjectAny, options: DynamicWatchersOptions = {}) {
     const evaluatedAttributes = this.attributeWatcher.addDynamicValues(attributes, options);
     this.updateSymbolOverride();
     return evaluatedAttributes;
   }
 
-  setAttributes(attributes: ObjectAny, options?: DynamicWatchersOptions) {
+  setAttributes(attributes: ObjectAny, options: DynamicWatchersOptions = {}) {
     const evaluatedAttributes = this.attributeWatcher.setDynamicValues(attributes, options);
     this.updateSymbolOverride();
     return evaluatedAttributes;
@@ -75,7 +80,7 @@ export class ComponentDynamicValueWatcher {
     if (haveOverridenAttributes) combinedKeys.push('attributes');
 
     if (!combinedKeys.length && !this.component.getSymbolOverride()) return;
-    this.component.setSymbolOverride(combinedKeys);
+    this.component.setSymbolOverride(combinedKeys, { fromDataSource: true });
   }
 
   getDynamicPropsDefs() {

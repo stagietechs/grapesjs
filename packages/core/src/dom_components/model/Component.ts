@@ -510,8 +510,13 @@ export default class Component extends StyleableModel<ComponentProperties> {
    * @example
    * component.setSymbolOverride(['children', 'classes']);
    */
-  setSymbolOverride(value?: boolean | string | string[]) {
-    this.set(keySymbolOvrd, (isString(value) ? [value] : value) ?? 0);
+  setSymbolOverride(value: boolean | string | string[], options: DynamicWatchersOptions = {}) {
+    this.set(
+      {
+        [keySymbolOvrd]: (isString(value) ? [value] : value) ?? 0,
+      },
+      options,
+    );
   }
 
   /**
