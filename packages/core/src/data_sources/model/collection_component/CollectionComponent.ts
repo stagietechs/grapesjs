@@ -140,7 +140,7 @@ function getCollectionItems(
           [keyCollectionsStateMap]: collectionsStateMap,
         },
         opt,
-      ).clone({ symbol: true });
+      );
       blockSymbolMain!.setSymbolOverride([keyCollectionsStateMap]);
     }
     blockSymbolMain!.set(keyCollectionsStateMap, collectionsStateMap);

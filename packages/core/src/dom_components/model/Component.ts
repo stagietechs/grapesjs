@@ -966,7 +966,7 @@ export default class Component extends StyleableModel<ComponentProperties> {
       const value = trait.getInitValue();
 
       if (trait.changeProp) {
-        this.set(name, value);
+        !this.get(name) && this.set(name, value);
       } else {
         if (name && value) attrs[name] = value;
       }
@@ -1319,7 +1319,8 @@ export default class Component extends StyleableModel<ComponentProperties> {
   clone(opt: { symbol?: boolean; symbolInv?: boolean } = {}): this {
     const em = this.em;
     const attr = {
-      ...this.componentDVListener.getPropsDefsOrValues(this.attributes),
+      ...this.attributes,
+      ...this.componentDVListener.getDynamicPropsDefs(),
     };
     const opts = { ...this.opt };
     const id = this.getId();

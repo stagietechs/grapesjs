@@ -167,8 +167,7 @@ describe('Collection component', () => {
       expect(firstChild.get('property_trait')).toBe('user1');
 
       expect(secondChild.getAttributes()['attribute_trait']).toBe('user2');
-      // TODO: Fix overrding traits
-      // expect(secondChild.get('property_trait')).toBe('user2');
+      expect(secondChild.get('property_trait')).toBe('user2');
     });
   });
 
