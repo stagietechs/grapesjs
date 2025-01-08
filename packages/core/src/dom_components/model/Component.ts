@@ -72,6 +72,7 @@ export const keySymbolOvrd = '__symbol_ovrd';
 export const keyUpdate = ComponentsEvents.update;
 export const keyUpdateInside = ComponentsEvents.updateInside;
 export const keyCollectionsStateMap = '__collections_state_map';
+export const keyIsCollectionItem = '__is_collection_item';
 
 /**
  * The Component object represents a single node of our template structure, so when you update its properties the changes are
@@ -262,13 +263,6 @@ export default class Component extends StyleableModel<ComponentProperties> {
   componentDVListener: ComponentDynamicValueWatcher;
 
   constructor(props: ComponentProperties = {}, opt: ComponentOptions) {
-    if (props[keyCollectionsStateMap]) {
-      // @ts-ignore
-      props.components = props.components?.forEach((component) => ({
-        ...component,
-        [keyCollectionsStateMap]: props[keyCollectionsStateMap],
-      }));
-    }
     const componentDVListener = new ComponentDynamicValueWatcher(undefined, {
       em: opt.em,
       collectionsStateMap: props[keyCollectionsStateMap],
@@ -304,7 +298,12 @@ export default class Component extends StyleableModel<ComponentProperties> {
     }
 
     opt.em = em;
-    this.opt = opt;
+    this.opt = {
+      ...opt,
+      // @ts-ignore
+      [keyCollectionsStateMap]: props[keyCollectionsStateMap],
+      isCollectionItem: !!props['isCollectionItem'],
+    };
     this.em = em!;
     this.config = opt.config || {};
     this.setAttributes({

@@ -2,7 +2,7 @@ import { ObjectAny } from '../../common';
 import { CollectionVariableType } from '../../data_sources/model/collection_component/constants';
 import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 import EditorModel from '../../editor/model/Editor';
-import Component from './Component';
+import Component, { keyCollectionsStateMap } from './Component';
 import { DynamicWatchersOptions } from './DynamicValueWatcher';
 import { DynamicValueWatcher } from './DynamicValueWatcher';
 
@@ -70,7 +70,7 @@ export class ComponentDynamicValueWatcher {
   }
 
   updateSymbolOverride() {
-    if (!this.component) return;
+    if (!this.component || !this.component.get('isCollectionItem')) return;
 
     const keys = this.propertyWatcher.getDynamicValuesOfType(CollectionVariableType);
     const attributesKeys = this.attributeWatcher.getDynamicValuesOfType(CollectionVariableType);

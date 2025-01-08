@@ -1,5 +1,5 @@
 import { isEmpty, isArray, isString, isFunction, each, includes, extend, flatten, keys } from 'underscore';
-import Component from './Component';
+import Component, { keyCollectionsStateMap } from './Component';
 import { AddOptions, Collection } from '../../common';
 import { DomComponentsConfig } from '../config/config';
 import EditorModel from '../../editor/model/Editor';
@@ -17,6 +17,7 @@ import ComponentText from './ComponentText';
 import ComponentWrapper from './ComponentWrapper';
 import { ComponentsEvents, ParseStringOptions } from '../types';
 import { isSymbolInstance, isSymbolRoot, updateSymbolComps } from './SymbolUtils';
+import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 
 export const getComponentIds = (cmp?: Component | Component[] | Components, res: string[] = []) => {
   if (!cmp) return [];
@@ -87,6 +88,8 @@ export interface ComponentsOptions {
   em: EditorModel;
   config?: DomComponentsConfig;
   domc?: ComponentManager;
+  collectionsStateMap?: CollectionsStateMap;
+  isCollectionItem?: boolean;
 }
 
 interface AddComponentOptions extends AddOptions {
@@ -324,13 +327,30 @@ Component> {
    */
   processDef(mdl: Component | ComponentDefinition | ComponentDefinitionDefined) {
     // Avoid processing Models
-    if (mdl.cid && mdl.ccid) return mdl;
+    if (mdl.cid && mdl.ccid) {
+      const componentCollectionsStateMap = mdl.get(keyCollectionsStateMap);
+      const parentCollectionsStateMap = this.opt.collectionsStateMap;
+      mdl.set(keyCollectionsStateMap, {
+        ...componentCollectionsStateMap,
+        ...parentCollectionsStateMap,
+      });
+
+      mdl.set('isCollectionItem', this.opt.isCollectionItem);
+
+      return mdl;
+    }
     const { em, config = {} } = this;
     const { processor } = config;
     let model = mdl;
 
     if (processor) {
-      model = { ...model }; // Avoid 'Cannot delete property ...'
+      model = {
+        [keyCollectionsStateMap]: {
+          ...this.opt.collectionsStateMap,
+        },
+        isCollectionItem: this.opt.isCollectionItem,
+        ...model,
+      }; // Avoid 'Cannot delete property ...'
       const modelPr = processor(model);
       if (modelPr) {
         //@ts-ignore

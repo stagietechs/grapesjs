@@ -147,6 +147,7 @@ function getCollectionItems(
         {
           ...block,
           [keyCollectionsStateMap]: collectionsStateMap,
+          isCollectionItem: true,
         },
         opt,
       );

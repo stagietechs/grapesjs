@@ -11,7 +11,7 @@ import Component from './Component';
 import Components from './Components';
 import { ToolbarButtonProps } from './ToolbarButton';
 import { ParseNodeOptions } from '../../parser/config/config';
-import { DynamicValueDefinition } from '../../data_sources/types';
+import { CollectionsStateMap } from '../../data_sources/model/collection_component/types';
 
 export type DragMode = 'translate' | 'absolute' | '';
 
@@ -321,4 +321,5 @@ export interface ComponentOptions {
   frame?: Frame;
   temporary?: boolean;
   avoidChildren?: boolean;
+  collectionsStateMap?: CollectionsStateMap;
 }

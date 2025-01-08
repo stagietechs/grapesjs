@@ -22,6 +22,7 @@ exports[`Collection component Stringfication Collection with dynamic datasource 
         "type": "parent-collection-variable",
         "variable_type": "current_item",
       },
+      "isCollectionItem": false,
       "property_trait": {
         "path": "user",
         "type": "parent-collection-variable",
